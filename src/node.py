@@ -1,5 +1,11 @@
-from random import randint
+from random import randint, random
 OPERATORS = ['+', '-', '*', '/']
+POW_MIN_EXP = 2
+POW_MAX_EXP = 5
+CONST_MIN = -10
+CONST_MAX = 10
+CONST_PROB = 0.6
+X_PROB = 0.25
 
 
 ## parcourt récursivement l'arbre et pritn
@@ -15,35 +21,44 @@ def afficher_en_ordre(current_node):
 
 
 class Node:
-    # type op is operator, type num is number (either coefficient or variable)
-    def __init__(self, type, depth):
+    # node_type op is operator, node_type num is a terminal value
+    def __init__(self, node_type, depth):
         self.value = 0
-        self.type = type
+        self.node_type = node_type
         self.right = None
         self.left = None
         self.depth = depth
 
-        if type == 'op':
+        if node_type == 'op':
             self.value = OPERATORS[randint(0, 3)]
-        elif type == 'num':
-            rand = randint(0, 1)
-            if rand == 0:
-                self.value = randint(-5, 5)
-            elif rand == 1:
+        elif node_type == 'num':
+            # Pour les feuilles 'num', on garde 3 formes terminales:
+            # constante, variable x, ou monome x**a.
+            # Le monome x**a est conserve volontairement pour guider la recherche
+            # vers des expressions polynomiales et reduire la difficulte de recherche.
+            r = random()
+            if r < CONST_PROB:
+                self.value = randint(CONST_MIN, CONST_MAX)
+            elif r < CONST_PROB + X_PROB:
                 self.value = 'x'
+            else:
+                self.value = f"x**{randint(POW_MIN_EXP, POW_MAX_EXP)}"
         else:
             raise ValueError('error, must be op or num')
 
+
+
+
     #changes the value of a node to a random operator
     def changer_en_operateur(self):
-        self.type = 'op'
+        self.node_type = 'op'
         self.value = OPERATORS[randint(0, 3)]
 
         # escape divide by zero error when the right child is already known
         if (
             self.value == '/'
             and self.right is not None
-            and self.right.type == 'num'
+            and self.right.node_type == 'num'
             and self.right.value == 0
         ):
             self.value = OPERATORS[randint(0, 2)]
@@ -120,8 +135,3 @@ class Node:
         lines = [first_line, second_line] + [a + u * ' ' + b for a, b in zipped_lines]
         return lines, n + m + u, max(p, q) + 2, n + u // 2
 
-
-##Testing##
-# Node1 = Node('num')
-# Node1.ajouter_enfants()
-# afficher_en_ordre(Node1)
