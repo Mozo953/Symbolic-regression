@@ -326,13 +326,13 @@ def tournament(pop, tournament_size, data):  # applique une selection par tourno
 
 ##########################FIN CODE########################################################################################
 
-info_log('Lecture du dataset...')
-chargement_fichier = os.path.join(os.path.dirname(__file__), '..', 'data', 'sr_periodic_02.txt')  # construit le chemin du dataset
-data = readData.parse_data(chargement_fichier)  # charge les donnees depuis le disque
-info_log('Dataset charge:', chargement_fichier, '| points:', len(data))
+if __name__ == '__main__':
+    info_log('Lecture du dataset...')
+    chargement_fichier = os.path.join(os.path.dirname(__file__), '..', 'data', 'sr_periodic_02.txt')  # construit le chemin du dataset
+    data = readData.parse_data(chargement_fichier)  # charge les donnees depuis le disque
+    info_log('Dataset charge:', chargement_fichier, '| points:', len(data))
 
-
-gen_size = 200  
-details = (1,3)  
-seuil_tolerance = 0.001
-evolution(data, gen_size, details, seuil_tolerance, MAX_GENERATIONS)  # lance l'evolution
+    gen_size = 200
+    details = (1, 3)
+    seuil_tolerance = 0.001
+    evolution(data, gen_size, details, seuil_tolerance, MAX_GENERATIONS)  # lance l'evolution

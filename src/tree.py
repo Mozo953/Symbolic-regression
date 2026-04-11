@@ -5,7 +5,7 @@ from readData import *
 import math
 import copy
 MUTATE_PROB = 0.7
-SIZE_PENALTY_COEFF = 0.1
+#SIZE_PENALTY_COEFF = 0.1
 FITNESS_INVALID_PENALTY = 1e6
 DIV_ZERO_EPS = 1e-12
 LAMBDA_SIZE = 1e-5  # coefficient ajustable pour penaliser la complexite
