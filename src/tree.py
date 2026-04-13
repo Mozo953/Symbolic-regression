@@ -1,4 +1,3 @@
-from collections import deque
 from node import *
 from random import *
 from readData import *
@@ -18,40 +17,14 @@ MAX_TREE_DEPTH = 10  # profondeur max recommandee (6 a 8)
 class Tree:
     # a ajuster plus tard pour eviter que tous les arbres aient
     # exactement la meme profondeur
-    def __init__(self, size=15, max_depth=None, mode='full'):
-        self.root = Node('num', 1)
-        self.size = 1
-        self.depth = 1
-        self.fitness = float('inf')
-
-        # Mode historique base sur la taille: comportement inchange pour les appels existants.
-        if max_depth is None:
-            target_size = max(1, int(size))
-            # ici on utilise un parcours en largeur (BFS) pour trouver un noeud sans enfants
-            frontier = deque([self.root])
-            # on continue jusqu'a atteindre la taille voulue
-            while self.size < target_size:
-                next_node = frontier.popleft()
-                if next_node.left is None and next_node.right is None:
-                    next_node.ajouter_enfants()
-                    self.size += 2
-                    # on ajoute les nouveaux enfants
-                    frontier.append(next_node.left)
-                    frontier.append(next_node.right)
-                    # on met a jour la profondeur
-                    if next_node.left.depth > self.depth:
-                        self.depth = next_node.left.depth
-                else:
-                    frontier.append(next_node.left)
-                    frontier.append(next_node.right)
-            return
-
-        # Nouveau mode base sur la profondeur maximale (full/grow).
+    def __init__(self, max_depth=1, mode='full'):
+        # Construction des arbres uniquement par profondeur max en mode full/grow.
         target_depth = max(1, int(max_depth))
         mode = str(mode).lower()
         if mode not in ('full', 'grow'):
             raise ValueError('error, mode must be full or grow')
 
+        self.fitness = float('inf')
         self.root = self._generer_noeud(1, target_depth, mode)
         self.depth = self.mettre_a_jour_profondeur(self.root)
         self.size = self.mettre_a_jour_taille(self.root)
