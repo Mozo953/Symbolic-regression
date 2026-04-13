@@ -41,5 +41,5 @@ TOLERANCE = 0.001 # Stopping condition
 FITNESS_INVALID_PENALTY = 1e6  # Roughly: if invalid, apply a near-infinite penalty.
 # ---- DISPLAY ----
 VERBOSE_LOGS = False
-PLOT_SUFFIX = "new_tune"  # Optional suffix added to copied plot filenames
+PLOT_SUFFIX = ""  # Optional suffix added to copied plot filenames
 DIV_ZERO_EPS = 1e-12
