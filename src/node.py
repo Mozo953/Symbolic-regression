@@ -8,7 +8,7 @@ CONST_PROB = 0.6
 X_PROB = 0.25
 
 
-## parcourt récursivement l'arbre et pritn
+## parcourt récursivement l'arbre et print
 def afficher_en_ordre(current_node):
     #if I have reached a leaf, return
     if current_node is None:

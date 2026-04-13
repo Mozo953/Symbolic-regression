@@ -144,31 +144,33 @@ def roulette(old_gen, num_, data):  # fonction non implementee pour l'instant
 
 
 # cree une nouvelle generation a partir de l'ancienne.
-def run_generation(old_gen, details, data, elite_size=2):  
+def run_generation(old_gen, details, data):
 
     #details : tuple (mode de selection, parametre de selection)
     #details[0] : 1 pour tournoi, 2 pour roulette
     #details[1] : taille d'un tournoi pour le mode tournoi
 
 
-    next_gen = []  # contiendra la generation suivante (elites + enfants)
-    best_fitness = float('inf')  # initialise le meilleur fitness observe
+    next_gen = []  # contiendra la generation suivante
     king = None  # stocke le meilleur individu de la nouvelle generation
 
     ####################################################################################
     if details[0] == 1:  # SI ON FAIT UN TOURNOI
         population_prec = old_gen[0]
-        elite_size = max(1, min(elite_size, len(population_prec)))
+        population_size = len(population_prec)
         tournament_size = details[1]  # taille d'un tournoi
+        crossover_weight = max(0.0, float(CROSSOVER_PROB))
+        mutation_weight = max(0.0, float(Tree.MUTATE_PROB))
+        total_weight = crossover_weight + mutation_weight
 
         # Fitness des anciens individus: on evite les recalculs inutiles.
         for individu in population_prec:
             if not math.isfinite(individu.fitness):
                 individu.calculer_fitness(data)
 
-        # 1) selection des parents (tournois) + creation des enfants
+        # 1) selection des parents (tournois) + creation d'une population complete d'enfants
         children = []
-        target_children = max(0, len(population_prec) - elite_size)
+        target_children = population_size
         count = 0  # compteur de tournois executes
 
         while len(children) < target_children:
@@ -183,47 +185,32 @@ def run_generation(old_gen, details, data, elite_size=2):
 
 
 
-            # PARMI LES CHAMPIONS, ON FAIT LES PAIRES ET ON GENERE DES ENFANTS
-
-            for i in range(len(champs)):  # cree des enfants depuis les champions
-                index1 = randint(0, len(champs) - 1)  # tire le premier parent
-                index2 = randint(0, len(champs) - 1)  # tire le second parent
-
-                while index1 == index2:  # evite la reproduction asexuee: évite les doublons
-                    index2 = randint(0, len(champs) - 1)  # retire un second parent
-
-                # applique le crossover avec une proba explicite
-                if random() < CROSSOVER_PROB:
-                    child = champs[index1].croiser(champs[index2])  # CROSSOVER
-                else:
-                    child = copy.deepcopy(champs[index1])  # sinon on clone un parent
-                child.muter(child.root)  # MUTATION
-                child.calculer_fitness(data)  # CAUCLUL DU FITNESS
-
-                children.append(child)  # ajoute l'enfant a la nouvelle generation
-
-                if len(children) < target_children and randint(0, 100) < 5:  # injection aleatoire de diversite a 5%
-                    random_depth = randint(INIT_MIN_DEPTH, INIT_MAX_DEPTH)
-                    random_tree = Tree.Tree(max_depth=random_depth, mode='grow')
-                    random_tree.calculer_fitness(data)
-                    children.append(random_tree)
-
+            for _ in range(len(champs)):
                 if len(children) >= target_children:
                     break
 
-        # 2) selection des survivants (elitisme + enfants uniquement)
-        # Les enfants ont deja leur fitness, pas besoin de recalculer.
-        children = children[:target_children]
+                parent1, parent2 = sample(champs, 2)
 
-        old_sorted = sorted(population_prec, key=lambda ind: ind.fitness)
-        elites = [copy.deepcopy(ind) for ind in old_sorted[:elite_size]]
+                # Une seule variation par enfant: crossover ou mutation.
+                if total_weight <= 0:
+                    child = copy.deepcopy(parent1)
+                elif random() < (crossover_weight / total_weight):
+                    child = parent1.croiser(parent2)
+                else:
+                    child = copy.deepcopy(parent1)
+                    child.muter()
+                child.calculer_fitness(data)
 
-        # Apres elitisme, on remplit uniquement avec des enfants.
-        next_gen = elites + children
+                children.append(child)
 
-        if next_gen:
-            king = copy.deepcopy(min(next_gen, key=lambda ind: ind.fitness))
-            best_fitness = king.fitness
+        # 2) selection des survivants: on garde les meilleurs individus
+        # parmi la population precedente et les enfants.
+        candidats = population_prec + children
+        survivants = sorted(candidats, key=lambda ind: ind.fitness)[:population_size]
+        next_gen = [copy.deepcopy(ind) for ind in survivants]
+
+        if survivants:
+            king = copy.deepcopy(survivants[0])
      
 
 

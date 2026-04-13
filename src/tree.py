@@ -77,6 +77,35 @@ class Tree:
         noeud.right = self._generer_noeud(depth + 1, max_depth, mode)
         return noeud
 
+    def _lister_noeuds(self, include_root=True):
+        if self.root is None:
+            return []
+
+        noeuds = []
+        pile = [(self.root, None, '', 1)]
+        while pile:
+            noeud, parent, direction, depth = pile.pop()
+            if include_root or parent is not None:
+                noeuds.append((noeud, parent, direction, depth))
+            if noeud.right is not None:
+                pile.append((noeud.right, noeud, 'r', depth + 1))
+            if noeud.left is not None:
+                pile.append((noeud.left, noeud, 'l', depth + 1))
+        return noeuds
+
+    def _mettre_a_jour_profondeurs_noeuds(self, node, depth=1):
+        if node is None:
+            return
+        node.depth = depth
+        self._mettre_a_jour_profondeurs_noeuds(node.left, depth + 1)
+        self._mettre_a_jour_profondeurs_noeuds(node.right, depth + 1)
+
+    def _mettre_a_jour_metadonnees(self):
+        self._mettre_a_jour_profondeurs_noeuds(self.root)
+        self.depth = self.mettre_a_jour_profondeur(self.root)
+        self.size = self.mettre_a_jour_taille(self.root)
+        self.fitness = float('inf')
+
     # pour comparer les arbres : egaux seulement si c'est la meme reference
     def __eq__(self, other):
         if self is other:
@@ -90,8 +119,6 @@ class Tree:
             return True
         else:
             return False
-
-
 
 
 
@@ -214,31 +241,13 @@ class Tree:
         child = copy.deepcopy(self)
         donor = copy.deepcopy(other)
 
-        # on choisit aleatoirement ou prelever/remplacer les sous-arbres
-        self_path = child.chaine_bits_aleatoire(randint(1, child.depth))
-        other_path = donor.chaine_bits_aleatoire(randint(1, donor.depth))
+        cibles = child._lister_noeuds(include_root=True)
+        donneurs = donor._lister_noeuds(include_root=True)
+        if not cibles or not donneurs:
+            return child
 
-        # noeud cible dans l'enfant (et son parent)
-        root1 = child.root
-        parent1 = None
-        direct1 = ''
-        for bit in self_path:
-            if bit == '0' and root1.left:
-                parent1 = root1
-                direct1 = 'l'
-                root1 = root1.left
-            elif bit == '1' and root1.right:
-                parent1 = root1
-                direct1 = 'r'
-                root1 = root1.right
-
-        # noeud donneur
-        root2 = donor.root
-        for bit in other_path:
-            if bit == '0' and root2.left:
-                root2 = root2.left
-            elif bit == '1' and root2.right:
-                root2 = root2.right
+        _, parent1, direct1, _ = choice(cibles)
+        root2, _, _, _ = choice(donneurs)
 
         graft = copy.deepcopy(root2)
         if parent1 is None:
@@ -248,9 +257,7 @@ class Tree:
         elif direct1 == 'r':
             parent1.right = graft
 
-        child.depth = child.mettre_a_jour_profondeur(child.root)
-        child.size = child.mettre_a_jour_taille(child.root)
-        child.fitness = float('inf')
+        child._mettre_a_jour_metadonnees()
         return child
 
 
@@ -283,53 +290,21 @@ class Tree:
 
 
 #############################MUTATION#####################################################
-    # mutation de l'arbre, plutot vers le bas
-    def muter(self, root):
-        # 1) on decide si on mute ou non
-        if random() >= MUTATE_PROB or root is None:
+    # mutation de l'arbre par remplacement uniforme d'un sous-arbre existant
+    def muter(self, root=None):
+        if root is None:
+            root = self.root
+        if root is None:
             return
 
-        # 2) on choisit un chemin aleatoire, en visant un noeud hors racine
         current_depth = self.mettre_a_jour_profondeur(root)
-        steps = randint(1, max(1, current_depth - 1))
-        path = self.chaine_bits_aleatoire(steps)
+        candidats = self._lister_noeuds(include_root=True)
+        if not candidats:
+            return
 
-        parent = None
-        direct = ''
-        node = root
-        node_depth = 1
+        _, parent, direct, node_depth = choice(candidats)
 
-        for bit in path:
-            if bit == '0' and node.left is not None:
-                parent = node
-                direct = 'l'
-                node = node.left
-                node_depth += 1
-            elif bit == '1' and node.right is not None:
-                parent = node
-                direct = 'r'
-                node = node.right
-                node_depth += 1
-            else:
-                # chemin coupe: on s'arrete proprement au dernier noeud atteignable
-                break
-
-        # 3) si aucun parent valide, on tente un enfant direct de la racine
-        if parent is None:
-            candidats = []
-            if root.left is not None:
-                candidats.append('l')
-            if root.right is not None:
-                candidats.append('r')
-
-            if not candidats:
-                return
-
-            direct = candidats[randint(0, len(candidats) - 1)]
-            parent = root
-            node_depth = 2
-
-        # 4) generation d'un nouveau sous-arbre aleatoire (mode grow)
+        # generation d'un nouveau sous-arbre aleatoire (mode grow)
         borne_basse = node_depth + 1
         if borne_basse > MAX_TREE_DEPTH:
             return
@@ -338,24 +313,11 @@ class Tree:
         new_max_depth = randint(borne_basse, borne_haute)
         new_subtree = self._generer_noeud(node_depth, new_max_depth, 'grow')
 
-        # 5) remplacement complet de l'ancien sous-arbre cible
-        if direct == 'l':
+        if parent is None:
+            self.root = new_subtree
+        elif direct == 'l':
             parent.left = new_subtree
         else:
             parent.right = new_subtree
 
-        # 6) mise a jour des metadonnees apres mutation
-        self.depth = self.mettre_a_jour_profondeur(self.root)
-        self.size = self.mettre_a_jour_taille(self.root)
-        self.fitness = float('inf')
-
-
-
-    # sert a tirer un chemin binaire aleatoire dans l'arbre
-    def chaine_bits_aleatoire(self, length):
-        string=''
-        for i in range(length):
-            bit = randint(0, 1)
-            string += str(bit)
-        return string
-
+        self._mettre_a_jour_metadonnees()
