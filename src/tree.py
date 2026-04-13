@@ -7,86 +7,85 @@ MUTATE_PROB = 0.7
 #SIZE_PENALTY_COEFF = 0.1
 FITNESS_INVALID_PENALTY = 1e6
 DIV_ZERO_EPS = 1e-12
-LAMBDA_SIZE = 1e-5  # coefficient ajustable pour penaliser la complexite
-MAX_TREE_DEPTH = 10  # profondeur max recommandee (6 a 8)
-# a faire plus tard : ajouter d'autres variables
+LAMBDA_SIZE = 1e-5  # Adjustable coefficient to penalize complexity.
+MAX_TREE_DEPTH = 10  # Recommended maximum depth (6 to 8).
+# To do later: add other variables.
 
 
 
 
 class Tree:
-    # a ajuster plus tard pour eviter que tous les arbres aient
-    # exactement la meme profondeur
+    # Adjust later to avoid all trees having exactly the same depth.
     def __init__(self, max_depth=1, mode='full'):
-        # Construction des arbres uniquement par profondeur max en mode full/grow.
+        # Tree construction only uses max depth in full/grow mode.
         target_depth = max(1, int(max_depth))
         mode = str(mode).lower()
         if mode not in ('full', 'grow'):
             raise ValueError('error, mode must be full or grow')
 
         self.fitness = float('inf')
-        self.root = self._generer_noeud(1, target_depth, mode)
-        self.depth = self.mettre_a_jour_profondeur(self.root)
-        self.size = self.mettre_a_jour_taille(self.root)
+        self.root = self._generate_node(1, target_depth, mode)
+        self.depth = self.update_depth(self.root)
+        self.size = self.update_size(self.root)
 
-    def _generer_noeud(self, depth, max_depth, mode):
-        # profondeur max atteinte: feuille numerique obligatoire
+    def _generate_node(self, depth, max_depth, mode):
+        # Maximum depth reached: numeric leaf required.
         if depth >= max_depth:
             return Node('num', depth)
 
-        # mode full: tous les noeuds internes sont des operateurs
+        # Full mode: all internal nodes are operators.
         if mode == 'full':
-            noeud = Node('op', depth)
-            noeud.left = self._generer_noeud(depth + 1, max_depth, mode)
-            noeud.right = self._generer_noeud(depth + 1, max_depth, mode)
-            return noeud
+            node = Node('op', depth)
+            node.left = self._generate_node(depth + 1, max_depth, mode)
+            node.right = self._generate_node(depth + 1, max_depth, mode)
+            return node
 
-        # mode grow: on peut s'arreter plus tot, sauf a la racine
-        if depth > 1 and random() < 0.5:   #ATTENTION, ca pourrait être un hp à regler. 
+        # Grow mode: we may stop earlier, except at the root.
+        if depth > 1 and random() < 0.5:   # WARNING, this could be a hyperparameter to tune.
             return Node('num', depth)
 
-        noeud = Node('op', depth)
-        noeud.left = self._generer_noeud(depth + 1, max_depth, mode)
-        noeud.right = self._generer_noeud(depth + 1, max_depth, mode)
-        return noeud
+        node = Node('op', depth)
+        node.left = self._generate_node(depth + 1, max_depth, mode)
+        node.right = self._generate_node(depth + 1, max_depth, mode)
+        return node
 
-    def _lister_noeuds(self, include_root=True):
+    def _list_nodes(self, include_root=True):
         if self.root is None:
             return []
 
-        noeuds = []
-        pile = [(self.root, None, '', 1)]
-        while pile:
-            noeud, parent, direction, depth = pile.pop()
+        nodes = []
+        stack = [(self.root, None, '', 1)]
+        while stack:
+            node, parent, direction, depth = stack.pop()
             if include_root or parent is not None:
-                noeuds.append((noeud, parent, direction, depth))
-            if noeud.right is not None:
-                pile.append((noeud.right, noeud, 'r', depth + 1))
-            if noeud.left is not None:
-                pile.append((noeud.left, noeud, 'l', depth + 1))
-        return noeuds
+                nodes.append((node, parent, direction, depth))
+            if node.right is not None:
+                stack.append((node.right, node, 'r', depth + 1))
+            if node.left is not None:
+                stack.append((node.left, node, 'l', depth + 1))
+        return nodes
 
-    def _mettre_a_jour_profondeurs_noeuds(self, node, depth=1):
+    def _update_node_depths(self, node, depth=1):
         if node is None:
             return
         node.depth = depth
-        self._mettre_a_jour_profondeurs_noeuds(node.left, depth + 1)
-        self._mettre_a_jour_profondeurs_noeuds(node.right, depth + 1)
+        self._update_node_depths(node.left, depth + 1)
+        self._update_node_depths(node.right, depth + 1)
 
-    def _mettre_a_jour_metadonnees(self):
-        self._mettre_a_jour_profondeurs_noeuds(self.root)
-        self.depth = self.mettre_a_jour_profondeur(self.root)
-        self.size = self.mettre_a_jour_taille(self.root)
+    def _update_metadata(self):
+        self._update_node_depths(self.root)
+        self.depth = self.update_depth(self.root)
+        self.size = self.update_size(self.root)
         self.fitness = float('inf')
 
-    # pour comparer les arbres : egaux seulement si c'est la meme reference
+    # To compare trees: equal only if it is the same reference.
     def __eq__(self, other):
         if self is other:
             return True
         else:
             return False
 
-    # pour le tri : plus petit = meilleur fitness
+    # For ordering: smaller = better fitness.
     def __lt__(self, other):
         if self.fitness < other.fitness:
             return True
@@ -97,18 +96,18 @@ class Tree:
 
 
 ###########################FITNESS#########################
-    # renvoie la valeur de l'arbre pour une entree x
-    def evaluer(self, x):
-        return self.evaluer_arbre(self.root, x)
+    # Returns the tree value for an input x.
+    def evaluate(self, x):
+        return self.evaluate_tree(self.root, x)
 
 
-    #Brique 1 : calcul fnotre f(x)
-    def evaluer_arbre(self, node, x):
-        # arbre vide
+    # Building block 1: compute our f(x).
+    def evaluate_tree(self, node, x):
+        # Empty tree.
         if node is None:
             return 0
 
-        # noeud feuille
+        # Leaf node.
         if node.left is None and node.right is None:
             if node.value=='x':
                 return float(x)
@@ -122,15 +121,15 @@ class Tree:
                 return float(node.value)
             return None
 
-        # on evalue le sous-arbre gauche
-        left_sum = self.evaluer_arbre(node.left, x)
+        # Evaluate the left subtree.
+        left_sum = self.evaluate_tree(node.left, x)
 
-        # on evalue le sous-arbre droit
-        right_sum = self.evaluer_arbre(node.right, x)
+        # Evaluate the right subtree.
+        right_sum = self.evaluate_tree(node.right, x)
         if left_sum == None or right_sum == None:
             return None
 
-        # on applique l'operation du noeud
+        # Apply the node operation.
         if node.value == '+':
             return float(left_sum + right_sum)
 
@@ -141,8 +140,8 @@ class Tree:
             return float(left_sum * right_sum)
 
         elif node.value == '/':
-            # TODO: remplacer plus tard par une vraie division protegee GP
-            # (avec seuil/regularisation configurable) pour plus de stabilite.
+            # TODO: later replace with a proper GP protected division
+            # (with configurable threshold/regularization) for more stability.
             if abs(right_sum) > DIV_ZERO_EPS:
                 return float(left_sum / right_sum)
             return float('inf')
@@ -150,24 +149,24 @@ class Tree:
         return None
 
 
-    # calcul la taille de l'arbre pour pénaliser
-    def taille_arbre(self, node):
+    # Compute the tree size for penalization.
+    def tree_size(self, node):
         if node is None:
             return 0
-        return 1 + self.taille_arbre(node.left) + self.taille_arbre(node.right)
+        return 1 + self.tree_size(node.left) + self.tree_size(node.right)
 
-    # calcule le fitness de l'arbre avec la pénalité
-    def calculer_fitness(self, data):
+    # Compute the tree fitness with the penalty term.
+    def compute_fitness(self, data):
         if not data:
             self.fitness = float('inf')
             return self.fitness
 
-        # erreur quadratique moyenne sur tous les points
+        # Mean squared error over all points.
         sqrerr = 0.0
         invalid_count = 0
         for x, y in data:
             try:
-                ans = self.evaluer(x)
+                ans = self.evaluate(x)
                 if ans is None:
                     invalid_count += 1
                     continue
@@ -182,18 +181,18 @@ class Tree:
 
             sqrerr += (ans_val - y) ** 2
 
-        # Aucun point evaluable: individu invalide.
+        # No evaluable point: invalid individual.
         if invalid_count == len(data):
             self.fitness = float('inf')
             return self.fitness
 
-        # Evite un fitness artificiellement faible si des points sont invalides.
+        # Avoid an artificially low fitness if some points are invalid.
         if invalid_count:
             sqrerr += FITNESS_INVALID_PENALTY * invalid_count
 
         mse = sqrerr / len(data)
-        taille = self.taille_arbre(self.root)
-        fitness = mse + LAMBDA_SIZE * taille    #Ici la pénalité TODO:mettre lambda en parametre
+        size = self.tree_size(self.root)
+        fitness = mse + LAMBDA_SIZE * size    # Penalty term. TODO: expose lambda as a parameter.
         self.fitness = fitness
         return fitness
 
@@ -204,23 +203,23 @@ class Tree:
 
 
 
-###########################CROISEMENT#########################
+###########################CROSSOVER#########################
 
 
 
-    # croise deux arbres
-    def croiser(self, other):
-        # Crossover non destructif: on travaille sur des copies profondes.
+    # Cross two trees.
+    def crossover(self, other):
+        # Non-destructive crossover: work on deep copies.
         child = copy.deepcopy(self)
         donor = copy.deepcopy(other)
 
-        cibles = child._lister_noeuds(include_root=True)
-        donneurs = donor._lister_noeuds(include_root=True)
-        if not cibles or not donneurs:
+        targets = child._list_nodes(include_root=True)
+        donors = donor._list_nodes(include_root=True)
+        if not targets or not donors:
             return child
 
-        _, parent1, direct1, _ = choice(cibles)
-        root2, _, _, _ = choice(donneurs)
+        _, parent1, direct1, _ = choice(targets)
+        root2, _, _, _ = choice(donors)
 
         graft = copy.deepcopy(root2)
         if parent1 is None:
@@ -230,7 +229,7 @@ class Tree:
         elif direct1 == 'r':
             parent1.right = graft
 
-        child._mettre_a_jour_metadonnees()
+        child._update_metadata()
         return child
 
 
@@ -238,53 +237,53 @@ class Tree:
 
     # def getRootLength(self,root,root_length):
     #     print self.depth
-    #     self.root.afficher()
+    #     self.root.display()
     #     if root==None:
     #         return root_length
     #     return(max(self.getRootLength(root.left,root_length+1),
     #     self.getRootLength(root.right,root_length+1)))
 
-    # algo recursif qui renvoie la profondeur de l'arbre
-    def mettre_a_jour_profondeur(self, root, depth=0):
+    # Recursive algorithm that returns the depth of the tree.
+    def update_depth(self, root, depth=0):
         if root == None:
             return depth
         depth += 1
-        return max(self.mettre_a_jour_profondeur(root.right, depth),
-        self.mettre_a_jour_profondeur(root.left, depth))
+        return max(self.update_depth(root.right, depth),
+        self.update_depth(root.left, depth))
 
-    # algo recursif qui met a jour la taille de l'arbre
-    def mettre_a_jour_taille(self, root, size=0):
+    # Recursive algorithm that updates the tree size.
+    def update_size(self, root, size=0):
         if root == None:
             return 0
-        return 1 + self.mettre_a_jour_taille(root.right, size) + self.mettre_a_jour_taille(root.left, size)
+        return 1 + self.update_size(root.right, size) + self.update_size(root.left, size)
 
 
 
 
 
 #############################MUTATION#####################################################
-    # mutation de l'arbre par remplacement uniforme d'un sous-arbre existant
-    def muter(self, root=None):
+    # Mutate the tree by uniformly replacing an existing subtree.
+    def mutate(self, root=None):
         if root is None:
             root = self.root
         if root is None:
             return
 
-        current_depth = self.mettre_a_jour_profondeur(root)
-        candidats = self._lister_noeuds(include_root=True)
-        if not candidats:
+        current_depth = self.update_depth(root)
+        candidates = self._list_nodes(include_root=True)
+        if not candidates:
             return
 
-        _, parent, direct, node_depth = choice(candidats)
+        _, parent, direct, node_depth = choice(candidates)
 
-        # generation d'un nouveau sous-arbre aleatoire (mode grow)
-        borne_basse = node_depth + 1
-        if borne_basse > MAX_TREE_DEPTH:
+        # Generate a new random subtree (grow mode).
+        lower_bound = node_depth + 1
+        if lower_bound > MAX_TREE_DEPTH:
             return
 
-        borne_haute = min(MAX_TREE_DEPTH, max(borne_basse, current_depth + 2))
-        new_max_depth = randint(borne_basse, borne_haute)
-        new_subtree = self._generer_noeud(node_depth, new_max_depth, 'grow')
+        upper_bound = min(MAX_TREE_DEPTH, max(lower_bound, current_depth + 2))
+        new_max_depth = randint(lower_bound, upper_bound)
+        new_subtree = self._generate_node(node_depth, new_max_depth, 'grow')
 
         if parent is None:
             self.root = new_subtree
@@ -293,4 +292,4 @@ class Tree:
         else:
             parent.right = new_subtree
 
-        self._mettre_a_jour_metadonnees()
+        self._update_metadata()

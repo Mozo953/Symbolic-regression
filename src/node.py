@@ -8,20 +8,20 @@ CONST_PROB = 0.6
 X_PROB = 0.25
 
 
-## parcourt récursivement l'arbre et print
-def afficher_en_ordre(current_node):
-    #if I have reached a leaf, return
+# Recursively traverse the tree and print values.
+def display_in_order(current_node):
+    # If we have reached a leaf, return.
     if current_node is None:
         return
-    #print left
-    afficher_en_ordre(current_node.left)
+    # Print left subtree.
+    display_in_order(current_node.left)
     print(current_node.value)
-    afficher_en_ordre(current_node.right)
+    display_in_order(current_node.right)
     return
 
 
 class Node:
-    # node_type op is operator, node_type num is a terminal value
+    # `op` nodes are operators, `num` nodes are terminal values.
     def __init__(self, node_type, depth):
         self.value = 0
         self.node_type = node_type
@@ -32,10 +32,10 @@ class Node:
         if node_type == 'op':
             self.value = OPERATORS[randint(0, 3)]
         elif node_type == 'num':
-            # Pour les feuilles 'num', on garde 3 formes terminales:
-            # constante, variable x, ou monome x**a.
-            # Le monome x**a est conserve volontairement pour guider la recherche
-            # vers des expressions polynomiales et reduire la difficulte de recherche.
+            # For `num` leaves, keep 3 terminal forms:
+            # constant, variable x, or monomial x**a.
+            # The monomial x**a is intentionally kept to guide the search
+            # toward polynomial expressions and reduce search difficulty.
             r = random()
             if r < CONST_PROB:
                 self.value = randint(CONST_MIN, CONST_MAX)
@@ -49,12 +49,12 @@ class Node:
 
 
 
-    #changes the value of a node to a random operator
-    def changer_en_operateur(self):
+    # Changes the value of a node to a random operator.
+    def change_to_operator(self):
         self.node_type = 'op'
         self.value = OPERATORS[randint(0, 3)]
 
-        # escape divide by zero error when the right child is already known
+        # Avoid divide-by-zero when the right child is already known.
         if (
             self.value == '/'
             and self.right is not None
@@ -64,33 +64,32 @@ class Node:
             self.value = OPERATORS[randint(0, 2)]
 
 
-    #takes node input which should be a number, changes it to an operator, and
-    #gives it two number children
-    def ajouter_enfants(self):
+    # Takes a numeric node, turns it into an operator,
+    # and gives it two numeric children.
+    def add_children(self):
         if self.left is None and self.right is None:
-            self.changer_en_operateur()
+            self.change_to_operator()
             self.left = Node('num', self.depth + 1)
             self.right = Node('num', self.depth + 1)
 
-            # avoid creating explicit division by zero in a new subtree
+            # Avoid creating explicit division by zero in a new subtree.
             while self.value == '/' and self.right.value == 0:
                 self.value = OPERATORS[randint(0, 2)]
 
-            #we have added two children to the
-            #shallowest node
+            # We have added two children to the shallowest node.
             return
         else:
             raise ValueError('error, to add children the node must have none')
                 
 
-    #scraped method to print the tree
-    #https://stackoverflow.com/questions/34012886/print-binary-tree-level-by-level-in-python
-    def afficher(self):
-        lines, _, _, _ = self._afficher_aux()
+    # Borrowed method to print the tree.
+    # https://stackoverflow.com/questions/34012886/print-binary-tree-level-by-level-in-python
+    def display(self):
+        lines, _, _, _ = self._display_aux()
         for line in lines:
             print(line)
 
-    def _afficher_aux(self):
+    def _display_aux(self):
         """Returns list of strings, width, height, and horizontal coordinate of the root."""
         # No child.
         if self.right is None and self.left is None:
@@ -102,7 +101,7 @@ class Node:
 
         # Only left child.
         if self.right is None:
-            lines, n, p, x = self.left._afficher_aux()
+            lines, n, p, x = self.left._display_aux()
             s = '%s' % self.value
             u = len(s)
             first_line = (x + 1) * ' ' + (n - x - 1) * '_' + s
@@ -112,7 +111,7 @@ class Node:
 
         # Only right child.
         if self.left is None:
-            lines, n, p, x = self.right._afficher_aux()
+            lines, n, p, x = self.right._display_aux()
             s = '%s' % self.value
             u = len(s)
             first_line = s + x * '_' + (n - x) * ' '
@@ -121,8 +120,8 @@ class Node:
             return [first_line, second_line] + shifted_lines, n + u, p + 2, u // 2
 
         # Two children.
-        left, n, p, x = self.left._afficher_aux()
-        right, m, q, y = self.right._afficher_aux()
+        left, n, p, x = self.left._display_aux()
+        right, m, q, y = self.right._display_aux()
         s = '%s' % self.value
         u = len(s)
         first_line = (x + 1) * ' ' + (n - x - 1) * '_' + s + y * '_' + (m - y) * ' '
@@ -134,4 +133,3 @@ class Node:
         zipped_lines = zip(left, right)
         lines = [first_line, second_line] + [a + u * ' ' + b for a, b in zipped_lines]
         return lines, n + m + u, max(p, q) + 2, n + u // 2
-

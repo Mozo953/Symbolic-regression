@@ -9,11 +9,11 @@ def _linspace(x_min, x_max, n):
     return [x_min + i * step for i in range(n)]
 
 
-def _courbe_arbre(arbre, xs):
+def _tree_curve(tree, xs):
     ys = []
     for x in xs:
         try:
-            y = arbre.evaluer(x)
+            y = tree.evaluate(x)
             if y is None or not math.isfinite(float(y)):
                 ys.append(float("nan"))
             else:
@@ -23,22 +23,22 @@ def _courbe_arbre(arbre, xs):
     return ys
 
 
-def tracer_points_et_fonctions(data, arbres, labels=None, output_path=None):
-    """Trace les points cibles + une ou plusieurs fonctions d'arbres sur le meme graphe."""
+def plot_points_and_functions(data, trees, labels=None, output_path=None):
+    """Plot target points plus one or more tree functions on the same graph."""
     try:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except Exception as exc:
-        print("Impossible de tracer (matplotlib indisponible):", exc)
+        print("Unable to plot (matplotlib unavailable):", exc)
         return None
 
     if not data:
-        print("Aucune donnee a tracer.")
+        print("No data to plot.")
         return None
 
     if labels is None:
-        labels = [f"fonction_{i + 1}" for i in range(len(arbres))]
+        labels = [f"function_{i + 1}" for i in range(len(trees))]
 
     x_data = [p[0] for p in data]
     y_data = [p[1] for p in data]
@@ -55,18 +55,18 @@ def tracer_points_et_fonctions(data, arbres, labels=None, output_path=None):
     xs = _linspace(x_min, x_max, 300)
 
     plt.figure(figsize=(9, 6))
-    plt.scatter(x_data, y_data, s=35, c="black", alpha=0.8, label="points du dataset")
+    plt.scatter(x_data, y_data, s=35, c="black", alpha=0.8, label="dataset points")
 
-    for i, arbre in enumerate(arbres):
-        ys = _courbe_arbre(arbre, xs)
-        label = labels[i] if i < len(labels) else f"fonction_{i + 1}"
+    for i, tree in enumerate(trees):
+        ys = _tree_curve(tree, xs)
+        label = labels[i] if i < len(labels) else f"function_{i + 1}"
         plt.plot(xs, ys, linewidth=2, label=label)
 
-    # Axes fixes sur les donnees cibles pour garder des points visuellement stables.
+    # Keep axes fixed on target data so points remain visually stable.
     plt.xlim(x_min, x_max)
     plt.ylim(y_min - y_pad, y_max + y_pad)
 
-    plt.title("Approximation symbolique : points vs fonctions")
+    plt.title("Symbolic approximation: points vs functions")
     plt.xlabel("x")
     plt.ylabel("y")
     plt.grid(alpha=0.25)

@@ -1,285 +1,287 @@
-import tree as Tree  # importe le module des arbres
-import readData  # importe le module de lecture des donnees
-from random import *  # importe les fonctions aleatoires
-from heapq import heappush, heappop  # importe les operations sur tas min-heap
-import copy  # importe la copie profonde des objets
-import math  # importe les fonctions mathematiques
-import os  # construit des chemins robustes vers les datasets
-import visualisation  # module dedie au tracage des resultats
+import tree as Tree  # import the tree module
+import readData  # import the data loading module
+from random import *  # import random functions
+from heapq import heappush, heappop  # import min-heap operations
+import copy  # import deep-copy support
+import math  # import mathematical functions
+import os  # build robust paths to datasets
+import visualisation  # module dedicated to plotting results
 
-# a faire ensuite : peaufiner la mutation et debugguer
-VERBOSE_LOGS = False  # mettre a True pour retrouver les logs detailles
-CROSSOVER_PROB = 0.9  # proba de crossover recommandee (0.7 a 0.9)
-INIT_MIN_DEPTH = 2  # profondeur initiale min recommandee
-INIT_MAX_DEPTH = 5  # profondeur initiale max recommandee
-MAX_GENERATIONS = 100  # nombre max de generations recommande (100 a 300)
+# Next to do: refine mutation and debug.
+VERBOSE_LOGS = False  # set to True to restore detailed logs
+CROSSOVER_PROB = 0.9  # recommended crossover probability (0.7 to 0.9)
+INIT_MIN_DEPTH = 2  # recommended initial minimum depth
+INIT_MAX_DEPTH = 5  # recommended initial maximum depth
+MAX_GENERATIONS = 100  # recommended maximum generations (100 to 300)
 def info_log(*args):
     print(*args)
 def debug_log(*args):
     if VERBOSE_LOGS:
         print(*args)
-def arbre_en_expression(noeud):
-    if noeud is None:
+
+
+def tree_to_expression(node):
+    if node is None:
         return '0'
-    if noeud.left is None and noeud.right is None:
-        return str(noeud.value)
-    gauche = arbre_en_expression(noeud.left)
-    droite = arbre_en_expression(noeud.right)
-    return f"({gauche} {noeud.value} {droite})"
+    if node.left is None and node.right is None:
+        return str(node.value)
+    left_expr = tree_to_expression(node.left)
+    right_expr = tree_to_expression(node.right)
+    return f"({left_expr} {node.value} {right_expr})"
 
-##########################DEBUT CODE####################################################################################
-
-
+##########################START OF CODE##################################################################################
 
 
-# Fonction evolution : pilote tout le cycle evolutif generation par generation.
-def evolution(data, gen_size, details, tol, max_generations=MAX_GENERATIONS):  # lance l'evolution complete
+
+
+# Evolution function: drive the whole evolutionary cycle generation by generation.
+def evolution(data, gen_size, details, tol, max_generations=MAX_GENERATIONS):  # run the full evolution
     
 
-    kings = []  # stocke les meilleurs individus rencontres dans un tas
-    converged = False  # indique si le processus doit s'arreter
-    # on simule des generations de selection naturelle
-    converg_count = 0  # compte le nombre de generations sans amelioration
-    gen_count = 0  # compte le nombre total de generations
+    kings = []  # store the best individuals encountered in a heap
+    converged = False  # indicates whether the process should stop
+    # simulate generations of natural selection
+    converg_count = 0  # count generations without improvement
+    gen_count = 0  # count the total number of generations
 
 
 
 
-    # on cree la population de depart
-    info_log('Demarrage evolution')
-    info_log('Parametres -> population:', gen_size, '| details:', details, '| tolerance:', tol)
-    info_log('Creation de la generation initiale...')
-    original = generation_initiale(gen_size, data, INIT_MIN_DEPTH, INIT_MAX_DEPTH)  # cree la premiere generation
-    info_log('Generation initiale prete. Fitness initiale:', original[1].fitness)
+    # create the starting population
+    info_log('Starting evolution')
+    info_log('Parameters -> population:', gen_size, '| details:', details, '| tolerance:', tol)
+    info_log('Creating the initial generation...')
+    original = initial_generation(gen_size, data, INIT_MIN_DEPTH, INIT_MAX_DEPTH)  # create the first generation
+    info_log('Initial generation ready. Initial fitness:', original[1].fitness)
 
-    heappush(kings, original[1])  # ajoute le premier king dans le tas
+    heappush(kings, original[1])  # add the first king to the heap
 
-    old_gen = original  # definit la generation courante
+    old_gen = original  # define the current generation
 
 
-    while not converged:  # boucle principale de l'evolution
+    while not converged:  # main evolution loop
         if gen_count >= max_generations:
             converged = True
-            info_log('Arret: nombre maximal de generations atteint (', max_generations, ').')
+            info_log('Stop: maximum number of generations reached (', max_generations, ').')
             break
 
-        if kings[0].fitness < tol:  # condition d'arret sur la tolerance
-            converged = True  # marque la convergence
-            info_log('Arret: tolerance atteinte apres', gen_count, 'generation(s).')
-            debug_log('Arbre du meilleur individu (tolerance atteinte):')
+        if kings[0].fitness < tol:  # stopping condition on tolerance
+            converged = True  # mark convergence
+            info_log('Stop: tolerance reached after', gen_count, 'generation(s).')
+            debug_log('Best individual tree (tolerance reached):')
             if VERBOSE_LOGS:
-                kings[0].root.afficher()  # affiche la structure du meilleur arbre
-            break  # sort de la boucle
+                kings[0].root.display()  # display the best tree structure
+            break  # exit the loop
 
-        best_before = kings[0].fitness  # meilleur historique avant cette generation
+        best_before = kings[0].fitness  # historical best before this generation
 
-        gen_count += 1  # incremente le compteur de generation
-        next_gen = run_generation(old_gen, details, data)  # genere la population suivante
-        king = next_gen[1]  # recupere le meilleur individu de la nouvelle generation
+        gen_count += 1  # increment the generation counter
+        next_gen = run_generation(old_gen, details, data)  # generate the next population
+        king = next_gen[1]  # get the best individual of the new generation
 
-        try:  # tentative d'ajout du nouveau king dans le tas
-            heappush(kings, king)  # pousse le king dans la structure de priorite
-        except:  # capture un eventuel probleme de comparaison
-            print(' tie break error')  # log d'erreur de tie-break
-            continue  # passe a la generation suivante
+        try:  # try to add the new king to the heap
+            heappush(kings, king)  # push the king into the priority structure
+        except:  # catch a possible comparison problem
+            print(' tie break error')  # tie-break error log
+            continue  # move on to the next generation
 
-        # on fait vieillir la population
-        old_gen = next_gen  # la nouvelle generation devient la generation courante
+        # age the population
+        old_gen = next_gen  # the new generation becomes the current generation
 
-        # affichage des meilleurs individus
+        # display the best individuals
         info_log(
-            f"Generation {gen_count:>3} | meilleur dans la géné : {king.fitness:.6g} | "
-            f"meilleur depuis le début: {kings[0].fitness:.6g}"
+            f"Generation {gen_count:>3} | best in generation: {king.fitness:.6g} | "
+            f"best so far: {kings[0].fitness:.6g}"
         )
-        debug_log('Arbre meilleur global:')
+        debug_log('Global best tree:')
         if VERBOSE_LOGS:
-            kings[0].root.afficher()  # affiche l'arbre du meilleur global
-            debug_log('Arbre meilleur de la generation:')
-            king.root.afficher()  # affiche l'arbre du meilleur local
+            kings[0].root.display()  # display the tree of the global best
+            debug_log('Generation best tree:')
+            king.root.display()  # display the tree of the local best
 
-        # si on n'ameliore pas strictement, on compte de la stagnation (plateau inclus)
+        # if we do not strictly improve, count stagnation (plateaus included)
         if king.fitness < best_before:
-            converg_count = 0  # vraie amelioration stricte
+            converg_count = 0  # real strict improvement
         else:
             converg_count += 1
-            if converg_count == 25:  # seuil de stagnation
-                info_log('Arret: stagnation (pas d\'amelioration sur 25 generations).')
+            if converg_count == 25:  # stagnation threshold
+                info_log('Stop: stagnation (no improvement for 25 generations).')
                 converged = True
 
-    # plot final: points du dataset + meilleure fonction obtenue
+    # final plot: dataset points + best function found
     plot_path = os.path.join(os.path.dirname(__file__), '..', 'plots', 'plot3.png')
-    saved_path = visualisation.tracer_points_et_fonctions(
+    saved_path = visualisation.plot_points_and_functions(
         data,
         [kings[0]],
-        ['meilleure fonction'],
+        ['best function'],
         plot_path,
     )
     if saved_path is not None:
-        info_log('plot sauvegarde:', saved_path)
+        info_log('plot saved:', saved_path)
     else:
-        # Evite de confondre un ancien plot avec les resultats courants.
+        # Avoid confusing an old plot with the current results.
         if os.path.exists(plot_path):
             os.remove(plot_path)
-        info_log('plot non genere (matplotlib indisponible ou erreur de trace).')
+        info_log('plot not generated (matplotlib unavailable or plotting error).')
 
     if kings:
-        fitness_stockee = kings[0].fitness
-        fitness_recalculee = kings[0].calculer_fitness(data)
-        delta_fitness = abs(fitness_recalculee - fitness_stockee)
-        info_log('fonction finale:', arbre_en_expression(kings[0].root))
-        info_log('fitness finale:', fitness_stockee)
-        info_log('fitness finale recalculee:', fitness_recalculee, '| ecart:', delta_fitness)
+        stored_fitness = kings[0].fitness
+        recomputed_fitness = kings[0].compute_fitness(data)
+        fitness_delta = abs(recomputed_fitness - stored_fitness)
+        info_log('final function:', tree_to_expression(kings[0].root))
+        info_log('final fitness:', stored_fitness)
+        info_log('recomputed final fitness:', recomputed_fitness, '| delta:', fitness_delta)
 
-    # apres debug, lancer la vraie evolution
+    # after debugging, run the real evolution
     # count = 0
-    # continuer jusqu'a ce qu'un nouveau king passe sous la tolerance
+    # continue until a new king goes below the tolerance
     # while (next_gen[1].fitness < tol and count < 10_000):
     #     next_gen = run_generation(next_gen, details, data)
     #     count += 1
 
 
-# Fonction roulette : placeholder pour une future selection par roulette.
-def roulette(old_gen, num_, data):  # fonction non implementee pour l'instant
-    return  # sortie immediate sans traitement
+# Roulette function: placeholder for future roulette selection.
+def roulette_selection(old_gen, num_, data):  # function not implemented yet
+    return  # immediate exit without processing
 
 
-# cree une nouvelle generation a partir de l'ancienne.
+# Create a new generation from the old one.
 def run_generation(old_gen, details, data):
 
-    #details : tuple (mode de selection, parametre de selection)
-    #details[0] : 1 pour tournoi, 2 pour roulette
-    #details[1] : taille d'un tournoi pour le mode tournoi
+    # details: tuple (selection mode, selection parameter)
+    # details[0]: 1 for tournament, 2 for roulette
+    # details[1]: tournament size for tournament mode
 
 
-    next_gen = []  # contiendra la generation suivante
-    king = None  # stocke le meilleur individu de la nouvelle generation
+    next_gen = []  # will contain the next generation
+    king = None  # store the best individual of the new generation
 
     ####################################################################################
-    if details[0] == 1:  # SI ON FAIT UN TOURNOI
-        population_prec = old_gen[0]
-        population_size = len(population_prec)
-        tournament_size = details[1]  # taille d'un tournoi
+    if details[0] == 1:  # TOURNAMENT
+        previous_population = old_gen[0]
+        population_size = len(previous_population)
+        tournament_size = details[1]  # size of one tournament
         crossover_weight = max(0.0, float(CROSSOVER_PROB))
         mutation_weight = max(0.0, float(Tree.MUTATE_PROB))
         total_weight = crossover_weight + mutation_weight
 
-        # Fitness des anciens individus: on evite les recalculs inutiles.
-        for individu in population_prec:
-            if not math.isfinite(individu.fitness):
-                individu.calculer_fitness(data)
+        # Fitness of previous individuals: avoid unnecessary recomputation.
+        for individual in previous_population:
+            if not math.isfinite(individual.fitness):
+                individual.compute_fitness(data)
 
-        # 1) selection des parents (tournois) + creation d'une population complete d'enfants
+        # 1) parent selection (tournaments) + creation of a full child population
         children = []
         target_children = population_size
-        count = 0  # compteur de tournois executes
+        count = 0  # number of tournaments executed
 
         while len(children) < target_children:
-            count += 1  # incremente le compteur de tournoi
-            debug_log('running tournament', count)  # log detaille du tournoi courant
-            champs = tournament(population_prec, tournament_size, data)  # recupere les champions
+            count += 1  # increment the tournament counter
+            debug_log('running tournament', count)  # detailed log for the current tournament
+            champions = tournament(previous_population, tournament_size, data)  # collect champions
 
-            if len(champs) < 2:  # securite: pas assez de parents exploitables
+            if len(champions) < 2:  # safety: not enough usable parents
                 break
 
 
 
 
 
-            for _ in range(len(champs)):
+            for _ in range(len(champions)):
                 if len(children) >= target_children:
                     break
 
-                parent1, parent2 = sample(champs, 2)
+                parent1, parent2 = sample(champions, 2)
 
-                # Une seule variation par enfant: crossover ou mutation.
+                # Only one variation per child: crossover or mutation.
                 if total_weight <= 0:
                     child = copy.deepcopy(parent1)
                 elif random() < (crossover_weight / total_weight):
-                    child = parent1.croiser(parent2)
+                    child = parent1.crossover(parent2)
                 else:
                     child = copy.deepcopy(parent1)
-                    child.muter()
-                child.calculer_fitness(data)
+                    child.mutate()
+                child.compute_fitness(data)
 
                 children.append(child)
 
-        # 2) selection des survivants: on garde les meilleurs individus
-        # parmi la population precedente et les enfants.
-        candidats = population_prec + children
-        survivants = sorted(candidats, key=lambda ind: ind.fitness)[:population_size]
-        next_gen = [copy.deepcopy(ind) for ind in survivants]
+        # 2) survivor selection: keep the best individuals
+        # from the previous population and the children.
+        candidates = previous_population + children
+        survivors = sorted(candidates, key=lambda ind: ind.fitness)[:population_size]
+        next_gen = [copy.deepcopy(ind) for ind in survivors]
 
-        if survivants:
-            king = copy.deepcopy(survivants[0])
+        if survivors:
+            king = copy.deepcopy(survivors[0])
      
 
 
     ####################################################################################
-    if details[0] == 2:  # ROULETTE (pas encore fait)
-        champs = roulette(old_gen[0], details[1], data)  # appel du placeholder roulette
+    if details[0] == 2:  # ROULETTE (not implemented yet)
+        champions = roulette_selection(old_gen[0], details[1], data)  # call roulette placeholder
 
 
 
     ####################################################################################
     debug_log('size of the old generation is', len(old_gen[0]))
-    debug_log('size of new gen is', len(next_gen))
-    return next_gen, king  # renvoie la nouvelle generation et son meilleur individu
+    debug_log('size of the new generation is', len(next_gen))
+    return next_gen, king  # return the new generation and its best individual
 
 
-# Generation de la population initiale (ramped half-and-half).
-def generation_initiale(size, data, min_depth=2, max_depth=6):
-    forest = []  # liste de tous les arbres de la population
-    best_fitness = float('inf')  # meilleure valeur de fitness observee
-    king = None  # meilleur individu courant
+# Initial population generation (ramped half-and-half).
+def initial_generation(size, data, min_depth=2, max_depth=6):
+    forest = []  # list of all population trees
+    best_fitness = float('inf')  # best fitness value observed
+    king = None  # current best individual
 
-    # cas limite: taille nulle ou negative
+    # edge case: zero or negative size
     if size <= 0:
         return forest, king
 
-    # securise les profondeurs demandees
+    # clamp requested depths
     min_depth = max(1, int(min_depth))
     max_depth = max(1, int(max_depth))
     if min_depth > max_depth:
         min_depth, max_depth = max_depth, min_depth
 
-    # configurations ramped half-and-half: chaque profondeur en mode full puis grow
+    # Ramped half-and-half configurations: each depth in full mode then grow mode.
     configurations = []
     for depth in range(min_depth, max_depth + 1):
         configurations.append((depth, 'full'))
         configurations.append((depth, 'grow'))
 
-    # repartition la plus uniforme possible sur les configurations
+    # Spread individuals as uniformly as possible across configurations.
     base = size // len(configurations)
-    reste = size % len(configurations)
+    remainder = size % len(configurations)
 
-    # creation de la population et suivi du meilleur individu comme avant
-    for index_cfg, (depth, mode) in enumerate(configurations):
-        quota = base + (1 if index_cfg < reste else 0)
+    # Create the population and track the best individual as before.
+    for config_index, (depth, mode) in enumerate(configurations):
+        quota = base + (1 if config_index < remainder else 0)
         for _ in range(quota):
-            individu = Tree.Tree(max_depth=depth, mode=mode)
-            individu.calculer_fitness(data)
-            forest.append(individu)
+            individual = Tree.Tree(max_depth=depth, mode=mode)
+            individual.compute_fitness(data)
+            forest.append(individual)
 
-            if individu.fitness < best_fitness:
-                best_fitness = individu.fitness
-                king = copy.deepcopy(individu)
+            if individual.fitness < best_fitness:
+                best_fitness = individual.fitness
+                king = copy.deepcopy(individual)
 
-    # filet de securite: complete proprement si jamais il manque des individus
+    # Safety net: complete cleanly if some individuals are missing.
     while len(forest) < size:
-        individu = Tree.Tree(max_depth=max_depth, mode='grow')
-        individu.calculer_fitness(data)
-        forest.append(individu)
+        individual = Tree.Tree(max_depth=max_depth, mode='grow')
+        individual.compute_fitness(data)
+        forest.append(individual)
 
-        if individu.fitness < best_fitness:
-            best_fitness = individu.fitness
-            king = copy.deepcopy(individu)
+        if individual.fitness < best_fitness:
+            best_fitness = individual.fitness
+            king = copy.deepcopy(individual)
 
-    return forest, king  # renvoie la population initiale et son roi
+    return forest, king  # return the initial population and its king
 
 
-# Fonction tournament : selectionne des champions via petits tournois aleatoires.
-def tournament(pop, tournament_size, data):  # applique une selection par tournois
-    champions = []  # stocke les gagnants des tournois
+# Tournament function: select champions through small random tournaments.
+def tournament(pop, tournament_size, data):  # apply tournament selection
+    champions = []  # store tournament winners
 
     if not pop:
         return champions
@@ -287,39 +289,39 @@ def tournament(pop, tournament_size, data):  # applique une selection par tourno
     tournament_size = max(1, min(int(tournament_size), len(pop)))
     num_tournaments = max(2, len(pop) // tournament_size)
 
-    # on lance des petits tournois aleatoires, et on garde un champion par tournoi
+    # Run small random tournaments and keep one champion per tournament.
     for _ in range(num_tournaments):
-        groupe = sample(pop, tournament_size)
+        group = sample(pop, tournament_size)
         best = float('inf')
         best_tree = None
 
-        for individu in groupe:
-            if math.isfinite(individu.fitness):
-                fitness = individu.fitness
+        for individual in group:
+            if math.isfinite(individual.fitness):
+                fitness = individual.fitness
             else:
-                fitness = individu.calculer_fitness(data)
+                fitness = individual.compute_fitness(data)
 
             if fitness < best:
                 best = fitness
-                best_tree = copy.deepcopy(individu)
+                best_tree = copy.deepcopy(individual)
 
         if best_tree is not None:
             champions.append(best_tree)
 
-    return champions  # renvoie la liste finale des champions
+    return champions  # return the final list of champions
 
 
 
 
-##########################FIN CODE########################################################################################
+##########################END OF CODE######################################################################################
 
 if __name__ == '__main__':
-    info_log('Lecture du dataset...')
-    chargement_fichier = os.path.join(os.path.dirname(__file__), '..', 'data', 'sr_periodic_02.txt')  # construit le chemin du dataset
-    data = readData.parse_data(chargement_fichier)  # charge les donnees depuis le disque
-    info_log('Dataset charge:', chargement_fichier, '| points:', len(data))
+    info_log('Reading dataset...')
+    file_to_load = os.path.join(os.path.dirname(__file__), '..', 'data', 'sr_periodic_02.txt')  # build the dataset path
+    data = readData.parse_data(file_to_load)  # load data from disk
+    info_log('Dataset loaded:', file_to_load, '| points:', len(data))
 
     gen_size = 200
     details = (1, 3)
-    seuil_tolerance = 0.001
-    evolution(data, gen_size, details, seuil_tolerance, MAX_GENERATIONS)  # lance l'evolution
+    tolerance_threshold = 0.001
+    evolution(data, gen_size, details, tolerance_threshold, MAX_GENERATIONS)  # run the evolution
