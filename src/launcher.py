@@ -1,6 +1,6 @@
 """
-Lanceur principal du projet - charge les paramètres et lance l'évolution.
-Modifiez config.py puis exécutez: python src/launcher.py
+Project main launcher - load parameters and run the evolution.
+Edit config.py then run: python src/launcher.py
 """
 
 import sys
@@ -8,19 +8,19 @@ import os
 import glob
 import shutil
 
-# Ajoute le dossier src au chemin Python
+# Add the src directory to the Python path.
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Importe les configurations
+# Import configuration.
 import config
 
-# Importe les modules du projet
+# Import project modules.
 import readData
 from main import evolution, VERBOSE_LOGS as _, info_log, debug_log
 
 
-def _appliquer_config_runtime():
-    """Injecte les hyperparametres config dans les modules runtime."""
+def _apply_runtime_config():
+    """Inject config hyperparameters into runtime modules."""
     import main
     import tree
 
@@ -35,21 +35,21 @@ def _appliquer_config_runtime():
     tree.MAX_TREE_DEPTH = config.MAX_TREE_DEPTH
 
 
-def _lancer_un_dataset(chemin_relatif_dataset):
-    """Lance l'evolution pour un dataset puis sauvegarde un plot unique."""
-    chemin_donnees = os.path.join(os.path.dirname(__file__), '..', chemin_relatif_dataset)
+def _run_one_dataset(relative_dataset_path):
+    """Run the evolution on one dataset, then save a unique plot."""
+    data_path = os.path.join(os.path.dirname(__file__), '..', relative_dataset_path)
 
     try:
-        data = readData.parse_data(chemin_donnees)
-        info_log(f'Donnees chargees: {chemin_donnees} | Points: {len(data)}')
+        data = readData.parse_data(data_path)
+        info_log(f'Data loaded: {data_path} | Points: {len(data)}')
     except FileNotFoundError:
-        print(f"\nERREUR: Fichier non trouve: {chemin_donnees}")
+        print(f"\nERROR: File not found: {data_path}")
         return False
     except Exception as e:
-        print(f"\nERREUR lors du chargement: {e}")
+        print(f"\nERROR while loading data: {e}")
         return False
 
-    info_log('Lancement de l\'evolution...\n')
+    info_log('Starting evolution...\n')
     gen_size = config.POPULATION_SIZE
     details = (1, config.TOURNAMENT_SIZE)
 
@@ -61,70 +61,72 @@ def _lancer_un_dataset(chemin_relatif_dataset):
         config.MAX_GENERATIONS,
     )
 
-    # main.evolution ecrit toujours plots/plot3.png, donc on le duplique avec un nom unique.
+    # main.evolution always writes plots/plot3.png, so duplicate it with a unique name.
     plots_dir = os.path.join(os.path.dirname(__file__), '..', 'plots')
     plot_source = os.path.join(plots_dir, 'plot3.png')
-    dataset_base = os.path.splitext(os.path.basename(chemin_relatif_dataset))[0]
+    dataset_base = os.path.splitext(os.path.basename(relative_dataset_path))[0]
     plot_suffix = str(getattr(config, 'PLOT_SUFFIX', '')).strip()
     suffix_part = f'_{plot_suffix}' if plot_suffix else ''
-    plot_cible = os.path.join(plots_dir, f'plot_{dataset_base}{suffix_part}.png')
+    plot_target = os.path.join(plots_dir, f'plot_{dataset_base}{suffix_part}.png')
 
     if os.path.exists(plot_source):
-        shutil.copyfile(plot_source, plot_cible)
-        info_log('plot copie:', plot_cible)
+        shutil.copyfile(plot_source, plot_target)
+        info_log('plot copied:', plot_target)
         return True
 
-    info_log('plot manquant (aucune copie pour ce dataset).')
+    info_log('plot missing (no copy created for this dataset).')
     return False
 
 
-def _lister_datasets_txt():
-    """Retourne tous les datasets .txt du dossier data, tries alphabetiquement."""
+def _list_txt_datasets():
+    """Return all .txt datasets from data/, sorted alphabetically."""
     data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
-    fichiers = sorted(glob.glob(os.path.join(data_dir, '*.txt')))
-    return [os.path.relpath(path, os.path.join(os.path.dirname(__file__), '..')) for path in fichiers]
+    files = sorted(glob.glob(os.path.join(data_dir, '*.txt')))
+    return [os.path.relpath(path, os.path.join(os.path.dirname(__file__), '..')) for path in files]
 
-def afficher_config():
-    """Affiche la configuration actuelle proprement."""
+
+def display_config():
+    """Display the current configuration cleanly."""
     print("\n" + "="*60)
-    print(" CONFIGURATION ACTUELLE")
+    print(" CURRENT CONFIGURATION")
     print("="*60)
-    print(f"Max générations : {config.MAX_GENERATIONS}")
-    print(f"Population : {config.POPULATION_SIZE}")
-    print(f"Crossover : {config.CROSSOVER_PROB} | Mutation : {config.MUTATE_PROB}")
-    print(f"Profondeur initiale : {config.INIT_MIN_DEPTH}-{config.INIT_MAX_DEPTH}")
-    print(f"Fichier données : {config.DATA_FILE}")
-    print(f"Suffixe plot : {config.PLOT_SUFFIX or '(none)'}")
-    print(f"Logs détaillés : {config.VERBOSE_LOGS}")
+    print(f"Max generations: {config.MAX_GENERATIONS}")
+    print(f"Population: {config.POPULATION_SIZE}")
+    print(f"Crossover: {config.CROSSOVER_PROB} | Mutation: {config.MUTATE_PROB}")
+    print(f"Initial depth: {config.INIT_MIN_DEPTH}-{config.INIT_MAX_DEPTH}")
+    print(f"Data file: {config.DATA_FILE}")
+    print(f"Plot suffix: {config.PLOT_SUFFIX or '(none)'}")
+    print(f"Detailed logs: {config.VERBOSE_LOGS}")
     print("="*60 + "\n")
 
-def lancer_pipeline():
-    """Lance le pipeline d'évolution."""
-    _appliquer_config_runtime()
+
+def run_pipeline():
+    """Run the evolution pipeline."""
+    _apply_runtime_config()
 
     if getattr(config, 'RUN_ALL_DATASETS', False):
-        datasets = _lister_datasets_txt()
+        datasets = _list_txt_datasets()
         if not datasets:
-            print('\nERREUR: Aucun dataset .txt trouve dans data/.')
+            print('\nERROR: No .txt dataset found in data/.')
             return
 
-        print(f"\nMode batch actif: {len(datasets)} dataset(s) trouves.")
-        succes = 0
+        print(f"\nBatch mode enabled: {len(datasets)} dataset(s) found.")
+        success = 0
         for index, dataset in enumerate(datasets, start=1):
             print('\n' + '-' * 70)
             print(f"[{index}/{len(datasets)}] Dataset: {dataset}")
             print('-' * 70)
-            ok = _lancer_un_dataset(dataset)
+            ok = _run_one_dataset(dataset)
             if ok:
-                succes += 1
+                success += 1
 
         print('\n' + '=' * 70)
-        print(f"Batch termine: {succes}/{len(datasets)} plot(s) copies dans plots/.")
+        print(f"Batch finished: {success}/{len(datasets)} plot(s) copied to plots/.")
         print('=' * 70)
         return
 
-    _lancer_un_dataset(config.DATA_FILE)
+    _run_one_dataset(config.DATA_FILE)
 
 if __name__ == "__main__":
-    afficher_config()
-    lancer_pipeline()
+    display_config()
+    run_pipeline()
