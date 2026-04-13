@@ -1,5 +1,5 @@
 # ---- DONNEES ----
-DATA_FILE = "data/sr_approx_02.txt"
+DATA_FILE = "data/sr_poly_04.txt"
 RUN_ALL_DATASETS = True  # True: lance tous les .txt du dossier data/
 
 
@@ -7,9 +7,9 @@ RUN_ALL_DATASETS = True  # True: lance tous les .txt du dossier data/
 # ---- EVOLUTION ---- 
 MAX_GENERATIONS = 80   #Diversité
 POPULATION_SIZE = 300    #Diversité
-CROSSOVER_PROB = 0.9    #Diversité
-MUTATE_PROB = 0.7       #Diversité
-TOURNAMENT_SIZE = 3     #Inverse de la diversité
+CROSSOVER_PROB = 0.95    # Slides: recombination should dominate variation
+MUTATE_PROB = 0.05       # Slides: mutation should stay low overall
+TOURNAMENT_SIZE = 2      # Slides: 2-tournament is the default example
 
 # ---- ARBRES INITIAUX ----
 INIT_MIN_DEPTH = 2   #complexité
@@ -26,7 +26,7 @@ POW_MAX_EXP = 3 #complexité
  
 # ---- FITNESS ET PENALITES ----
 
-LAMBDA_SIZE = 1e-4 #Bas = complexe
+LAMBDA_SIZE = 2e-4 #Bas = complexe
 
 
 TOLERANCE = 0.001 #condition d'arrêt
@@ -41,4 +41,5 @@ TOLERANCE = 0.001 #condition d'arrêt
 FITNESS_INVALID_PENALTY = 1e6  #en gros si c invalide on met l'infini
 # ---- AFFICHAGE ----
 VERBOSE_LOGS = False
+PLOT_SUFFIX = "new_tune"  # Optional suffix added to copied plot filenames
 DIV_ZERO_EPS = 1e-12

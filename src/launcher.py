@@ -65,7 +65,9 @@ def _lancer_un_dataset(chemin_relatif_dataset):
     plots_dir = os.path.join(os.path.dirname(__file__), '..', 'plots')
     plot_source = os.path.join(plots_dir, 'plot3.png')
     dataset_base = os.path.splitext(os.path.basename(chemin_relatif_dataset))[0]
-    plot_cible = os.path.join(plots_dir, f'plot_{dataset_base}.png')
+    plot_suffix = str(getattr(config, 'PLOT_SUFFIX', '')).strip()
+    suffix_part = f'_{plot_suffix}' if plot_suffix else ''
+    plot_cible = os.path.join(plots_dir, f'plot_{dataset_base}{suffix_part}.png')
 
     if os.path.exists(plot_source):
         shutil.copyfile(plot_source, plot_cible)
@@ -92,6 +94,7 @@ def afficher_config():
     print(f"Crossover : {config.CROSSOVER_PROB} | Mutation : {config.MUTATE_PROB}")
     print(f"Profondeur initiale : {config.INIT_MIN_DEPTH}-{config.INIT_MAX_DEPTH}")
     print(f"Fichier données : {config.DATA_FILE}")
+    print(f"Suffixe plot : {config.PLOT_SUFFIX or '(none)'}")
     print(f"Logs détaillés : {config.VERBOSE_LOGS}")
     print("="*60 + "\n")
 
