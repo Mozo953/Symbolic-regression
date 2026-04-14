@@ -216,7 +216,7 @@ class Tree:
         if random.random() <  MUTATE_PROB:
         # on evite de muter trop pres de la racine
             # et on ne touche jamais la racine
-            lower = max(1,self.depth-2)
+            lower = max(1,self.depth-2) # p, acce^te pas la racaine
             path = self.chaine_bits_aleatoire(randint(lower, self.depth+2))
             direct=''
             depth = 1
